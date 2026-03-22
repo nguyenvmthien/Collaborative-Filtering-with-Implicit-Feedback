@@ -1,0 +1,11 @@
+{
+  "dataset": "steam_tiny",
+  "n_users": 200,
+  "n_items": 300,
+  "n_interactions": 13885,
+  "density": 0.23141666666666666,
+  "n_train": 13485,
+  "n_val": 200,
+  "n_test": 200,
+  "k_core": 5
+}

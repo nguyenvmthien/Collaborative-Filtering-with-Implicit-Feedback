@@ -1,0 +1,11 @@
+{
+  "source": "Local subset of phase2_dataset/raw/steam/steam_interactions_raw.csv",
+  "selection": {
+    "seed": 42,
+    "sample_users": 200,
+    "sample_items": 300,
+    "min_playtime_minutes": 30,
+    "k_core": 5
+  },
+  "created_on": "2026-03-13"
+}
