@@ -1,0 +1,16 @@
+{
+  "generated_at_utc": "2026-03-19T14:09:50.159079+00:00",
+  "input_file": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\data\\processed\\interactions.csv",
+  "num_users": 380,
+  "num_items": 136893,
+  "num_interactions": 1677243,
+  "density": 0.032242681279693285,
+  "avg_interactions_per_user": 4413.797368421053,
+  "avg_users_per_item": 12.252218886283448,
+  "user_degree_min": 5,
+  "user_degree_max": 49756,
+  "item_degree_min": 3,
+  "item_degree_max": 327,
+  "has_users_file": true,
+  "has_items_file": true
+}

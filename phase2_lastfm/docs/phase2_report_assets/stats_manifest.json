@@ -1,0 +1,11 @@
+{
+  "generated_at_utc": "2026-03-19T14:09:56.148373+00:00",
+  "files": {
+    "summary_stats": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\summary_stats.json",
+    "top_20_artists": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\top_20_artists.csv",
+    "user_degree_hist": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\degree_hist_users.png",
+    "item_degree_hist": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\degree_hist_items.png",
+    "stats_table_csv": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\stats_table.csv",
+    "stats_table_md": "C:\\Users\\Admin\\Desktop\\bigdataungdung\\phase2_lastfm\\docs\\phase2_report_assets\\stats_table.md"
+  }
+}
