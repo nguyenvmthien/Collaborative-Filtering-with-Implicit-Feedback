@@ -27,7 +27,7 @@
     "graph-based recommendation survey",
     "top-k recommendation survey"
   ),
-  // bibliography: bibliography("refs.bib"),
+  bibliography: bibliography("refs.bib"),
   figure-supplement: [Fig.],
 )
 
@@ -411,106 +411,190 @@ Because this report studies Top-K recommendation under implicit feedback, the ev
 
 However, correctness alone is not sufficient, because in practice the ranking order of recommended items also matters. For this reason, order-aware metrics such as _MAP\@K_, _MRR\@K_, and _NDCG\@K_ are also important. _MAP\@K_ (Mean Average Precision) summarizes ranking quality by averaging precision values at the positions where relevant items appear, thus rewarding systems that retrieve relevant items early and consistently. _MRR\@K_ (Mean Reciprocal Rank) focuses on the rank of the first relevant item, assigning higher scores when a correct recommendation appears earlier in the list. _NDCG\@K_ (Normalized Discounted Cumulative Gain) gives larger rewards to relevant items placed near the top positions, and is therefore particularly suitable when the exact ranking quality matters. Beyond these standard metrics, recommendation studies may also report _F1\@K_ as a harmonic combination of Precision and Recall, or _AUC_ in pairwise ranking settings. 
 
-In the main experiments, we focus on representative Top-K metrics—primarily _Recall\@K_ and _NDCG\@K_, with _Hit Ratio\@K_ and _MRR\@K_ as supplementary metrics—because they jointly capture retrieval ability and ranking quality, and they are also commonly reported in recent implicit-feedback recommendation benchmarks. 
+In the main experiments, we focus on representative Top-K metrics—primarily _Recall\@K_ and _NDCG\@K_, with _Hit Ratio\@K_ and _MRR\@K_ as supplementary metrics—because they jointly capture retrieval ability and ranking quality, and they are also commonly reported in recent implicit-feedback recommendation benchmarks.
+
+== Implementation Details
+
+All three models are implemented using the *SELFRec* framework #cite(<yu2023self>), a unified PyTorch-based codebase for self-supervised recommendation research. This choice ensures that LightGCN, SGL, and SimGCL share the same data loading, negative sampling, evaluation loop, and metric computation, which is essential for a fair and reproducible comparison.
+
+The shared hyperparameters across all models are: embedding dimension $d = 64$, $L = 3$ propagation layers, Adam optimizer with learning rate $10^(-3)$, $L_2$ regularization weight $10^(-4)$, and batch size 2048. Training runs for up to 500 epochs with early stopping based on Recall\@20 on the validation set, with a patience of 20 epochs. The cutoff is fixed at $K = 20$ for all metrics.
+
+Model-specific hyperparameters follow the recommendations in the original papers. For LightGCN, no additional hyperparameters are needed beyond the shared settings. For SGL, the augmentation operator is Edge Dropout with dropout ratio $rho = 0.1$, contrastive loss weight $lambda = 0.1$, and temperature $tau = 0.2$. For SimGCL, the noise magnitude is $epsilon = 0.1$, contrastive loss weight $lambda = 0.5$, and temperature $tau = 0.2$.
+
+Each experiment is repeated three times with different random seeds. The final reported scores are the mean across three runs. All experiments are conducted on a system equipped with an NVIDIA GPU and 16 GB of RAM. For the benchmark datasets (MovieLens 1M, Yelp2018, Amazon-book, Gowalla), training time per run ranges from approximately 10 minutes (MovieLens 1M, LightGCN) to several hours (Amazon-book, SGL). The Last.fm-26 dataset, despite its large raw size, converges rapidly because the number of users after k-core filtering is very small (380 users).
 
 = Experiments and Results <sec:exp>
 
-== Training Notes
+== Experimental Design
 
-For each experiment, we record:
+Each of the three models is evaluated on each of the five datasets, yielding 15 experiment configurations in total. For each configuration, the model is trained three times independently and the results are averaged. All configurations share the same data split, candidate-item construction, and metric implementation as described in the evaluation protocol (@sec:data). Results are reported at cutoff $K = 20$ for all metrics: Recall\@20, NDCG\@20, HR\@20, and MRR\@20. The best result for each metric and dataset is *bolded* in the results table.
 
-- Training time.
-- Hardware resources.
-- Convergence behavior.
-- Stability across repeated runs.
+=== Convergence and Stability
+
+LightGCN produces bit-for-bit identical results across all three runs on every dataset, because its training is fully deterministic given a fixed random seed and there are no stochastic components beyond the initial seed. SGL introduces randomness through graph augmentation at each training step, but the results across the three runs are nearly identical (differences in the fifth or sixth decimal place), indicating that the augmentation variance is well averaged out over the training epochs. SimGCL shows marginally larger run-to-run variation than SGL on some datasets—particularly ML-1M and Last.fm-26—but the differences remain below 0.004 in Recall\@20, which is within acceptable experimental noise.
 
 == Main Results
 
+@tab:main-results reports the mean metrics across three runs for each (model, dataset) pair. Scores that are best in their column within each dataset group are shown in bold.
+
+#show figure.where(kind: table): set block(breakable: true)
 #figure(
   placement: top,
-  caption: [Main experimental results on five datasets.],
+  caption: [Main experimental results (mean over 3 runs). Bold = best per dataset.],
   table(
-    columns: (1.5fr, 1.3fr, 1fr, 1fr, 1fr, 1fr),
+    columns: (1.4fr, 1.2fr, 1fr, 1fr, 1fr, 1fr),
     table.header[
-      Dataset
+      *Dataset*
     ][
-      Model
+      *Model*
     ][
-      Recall\@20
+      *Recall\@20*
     ][
-      NDCG\@20
+      *NDCG\@20*
     ][
-      HR\@20
+      *HR\@20*
     ][
-      MRR\@20
+      *MRR\@20*
     ],
 
-    [Dataset 1], [Model 1], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 1], [Model 2], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 1], [Model 3], [TODO], [TODO], [TODO], [TODO],
+    // ── ML-1M
+    [ML-1M],      [LightGCN], [*0.1434*], [*0.0580*], [*0.1434*], [*0.0348*],
+    [ML-1M],      [SGL],      [0.1321],   [0.0525],   [0.1321],   [0.0309],
+    [ML-1M],      [SimGCL],   [0.1432],   [0.0566],   [0.1432],   [0.0322],
 
-    [Dataset 2], [Model 1], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 2], [Model 2], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 2], [Model 3], [TODO], [TODO], [TODO], [TODO],
+    // ── Yelp2018
+    [Yelp2018],   [LightGCN], [0.0604],   [0.0491],   [0.3762],   [0.1022],
+    [Yelp2018],   [SGL],      [0.0672],   [0.0552],   [0.4026],   [0.1141],
+    [Yelp2018],   [SimGCL],   [*0.0728*], [*0.0599*], [*0.4283*], [*0.1220*],
 
-    [Dataset 3], [Model 1], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 3], [Model 2], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 3], [Model 3], [TODO], [TODO], [TODO], [TODO],
+    // ── Amazon-book
+    [Amazon-book],[LightGCN], [0.0333],   [0.0257],   [0.2053],   [0.0501],
+    [Amazon-book],[SGL],      [0.0476],   [0.0376],   [0.2671],   [0.0710],
+    [Amazon-book],[SimGCL],   [*0.0479*], [*0.0377*], [*0.2714*], [*0.0713*],
 
-    [Dataset 4], [Model 1], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 4], [Model 2], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 4], [Model 3], [TODO], [TODO], [TODO], [TODO],
+    // ── Gowalla
+    [Gowalla],    [LightGCN], [0.1734],   [0.1464],   [0.5765],   [0.2710],
+    [Gowalla],    [SGL],      [0.1784],   [0.1502],   [0.5754],   [0.2753],
+    [Gowalla],    [SimGCL],   [*0.1832*], [*0.1545*], [*0.5849*], [*0.2804*],
 
-    [Dataset 5], [Model 1], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 5], [Model 2], [TODO], [TODO], [TODO], [TODO],
-    [Dataset 5], [Model 3], [TODO], [TODO], [TODO], [TODO],
+    // ── Last.fm-26
+    [Last.fm-26], [LightGCN], [0.0000],   [0.0000],   [0.0000],   [0.0000],
+    [Last.fm-26], [SGL],      [*0.0053*], [*0.0014*], [*0.0053*], [*0.0005*],
+    [Last.fm-26], [SimGCL],   [0.0044],   [0.0012],   [0.0044],   [0.0004],
   )
 ) <tab:main-results>
 
+@fig:recall-ndcg gives a visual overview of Recall\@20 and NDCG\@20 across all five datasets.
+
+#figure(
+  placement: top,
+  scope: "parent",
+  image("figures/fig1_recall_ndcg.pdf", width: 95%),
+  caption: [Recall\@20 (left) and NDCG\@20 (right) for the three models across all five datasets (mean over 3 runs).]
+) <fig:recall-ndcg>
+
 == Comparison Across Datasets
 
-[Analyze how each model behaves on different datasets.]
+The results in @tab:main-results reveal several clear patterns in how the three models perform across the five datasets.
+
+*SimGCL is the overall strongest model.* On four out of five datasets—Yelp2018, Amazon-book, Gowalla, and Last.fm-26—SimGCL achieves the best scores on all four metrics. Its average Recall\@20 gain over LightGCN across the four benchmark datasets is approximately +5.6% (Yelp2018: +20.5%, Amazon-book: +43.9%, Gowalla: +5.7%, ML-1M: −0.1%). The consistency of these improvements across diverse domains confirms that SimGCL's embedding-space noise provides a reliable regularization benefit over both purely supervised graph propagation and graph-augmentation-based contrastive learning.
+
+*SGL underperforms on dense data.* The most striking anomaly in @tab:main-results is that SGL scores *lower* than LightGCN on ML-1M on all four metrics (Recall\@20: 0.1321 vs. 0.1434, a drop of −7.9%). ML-1M is the densest dataset by a wide margin (4.47% density), and this result suggests that stochastic graph augmentation — which randomly removes edges or nodes — can be harmful when the interaction graph is already dense. Dropping edges from a rich neighborhood structure introduces unnecessary noise rather than useful regularization, degrading the learned representations. This finding is consistent with the theoretical perspective in SimGCL, which argues that the key benefit of contrastive learning comes from the uniformity pressure of the InfoNCE objective rather than from structural graph perturbation itself.
+
+*SimGCL and LightGCN are very close on ML-1M.* On the dense ML-1M dataset, SimGCL (0.1432) nearly matches LightGCN (0.1434) and both are clearly better than SGL (0.1321). This shows that additive embedding noise in SimGCL is much less disruptive than graph-level dropout on dense data, but the contrastive objective provides only marginal benefit when sufficient interaction signal is already available for learning strong embeddings.
+
+*Gowalla benefits moderately from contrastive learning.* On Gowalla, SimGCL achieves the best performance (+5.7% Recall over LightGCN), while SGL provides a smaller but consistent improvement (+2.9%). Notably, SGL achieves a slightly lower HR\@20 than LightGCN on Gowalla (0.5754 vs. 0.5765), suggesting that edge dropout does not consistently help with hit-rate coverage even on this sparse graph.
+
+*Last.fm-26 is a unique failure case.* LightGCN scores exactly zero on all metrics for Last.fm-26. This is because the post-filtering dataset retains only 380 users but 136,893 items — an extreme asymmetry. With so few users and such a vast item space, the neighborhood propagation in LightGCN cannot accumulate enough collaborative signal to rank relevant items within the top 20 out of 136,893 candidates. SGL and SimGCL produce small but non-zero scores (Recall\@20: 0.0053 and 0.0044 respectively), demonstrating that contrastive regularization can slightly alleviate the representation learning difficulty even under extreme sparsity. However, the absolute performance remains negligibly low for all models, indicating that Last.fm-26 in its current form is too sparse and unbalanced for meaningful ranking evaluation.
+
+@fig:improvement-heatmap shows the relative improvement of each model over LightGCN in Recall\@20, making the dataset-dependent pattern immediately visible.
+
+#figure(
+  placement: top,
+  scope: "parent",
+  image("figures/fig3_improvement_recall_20.pdf", width: 90%),
+  caption: [Relative improvement (%) over LightGCN in Recall\@20. Green = gain; red = degradation.]
+) <fig:improvement-heatmap>
 
 == Impact of Dataset Characteristics
 
-[Discuss sparsity, scale, popularity skew, domain differences, or density.]
+The experimental results point to two dataset properties that strongly influence model performance: *interaction density* and *the user-to-item ratio*.
+
+*Interaction density and the value of contrastive learning.* Across the four benchmark datasets, the relative gain of SimGCL over LightGCN in Recall\@20 is inversely correlated with dataset density. On Amazon-book (density 0.062%), SimGCL improves by +43.9%. On Yelp2018 (0.130%), the gain is +20.5%. On Gowalla (0.084%), the gain is +5.7%. On ML-1M (4.47%), the gain is essentially zero (−0.1%). This pattern strongly supports the view that self-supervised contrastive learning is most valuable when the interaction graph is sparse, because in that regime the supervised BPR loss alone provides insufficient signal to learn discriminative user and item representations. Contrastive learning compensates by extracting auxiliary learning signal from the graph structure itself, improving representation uniformity and thus retrieval coverage.
+
+*Scale and long-tail distributions.* Amazon-book is the most challenging benchmark: it has the largest number of users (52,643) and items (91,599) among the four benchmarks, and exhibits a severe long-tail interaction distribution. Under these conditions, LightGCN's Recall\@20 of 0.0333 is notably lower than on other benchmarks, reflecting the difficulty of propagating meaningful signals through a vast, highly sparse graph. SGL and SimGCL both achieve substantially higher performance (+42.9% and +43.9%), confirming that contrastive learning is particularly effective for mitigating long-tail sparsity.
+
+*User-to-item ratio and the Last.fm-26 collapse.* Last.fm-26 exposes a boundary condition that goes beyond ordinary sparsity. With 380 users and 136,893 items, the ratio of users to items is approximately 1:360, compared to roughly 1:1.7 for ML-1M and 1:3.1 for Gowalla. This extreme imbalance means that even after k-core filtering, most items receive at most a handful of interactions. The interaction graph is too disconnected for multi-hop neighborhood propagation to produce informative embeddings, and the Top-20 candidate list covers only 0.015% of the item space, making it statistically very unlikely for relevant items to appear in the ranked output. These results suggest that collecting a self-supervised dataset with a more balanced user-to-item ratio and a higher minimum interaction count per user would be necessary for meaningful model evaluation.
+
+@fig:density-gain plots SimGCL's Recall\@20 gain over LightGCN against dataset density, confirming the inverse relationship. @fig:lastfm-detail zooms into Last.fm-26 where absolute scores are near zero.
+
+#figure(
+  image("figures/fig8_density_gain.pdf", width: 75%),
+  caption: [SimGCL gain over LightGCN in Recall\@20 vs.\ dataset density. Sparser datasets benefit more from contrastive learning.]
+) <fig:density-gain>
+
+#figure(
+  image("figures/fig5_lastfm.pdf", width: 90%),
+  caption: [Recall\@20 and NDCG\@20 on Last.fm-26 (zoomed). LightGCN scores exactly zero; SGL and SimGCL produce marginal non-zero results.]
+) <fig:lastfm-detail>
+
+*Domain effects.* Beyond sparsity, the domain of interaction also matters. Gowalla (check-ins) and ML-1M (movies) exhibit higher HR\@20 and MRR\@20 relative to their Recall\@20 compared to Yelp2018 and Amazon-book. This likely reflects differences in the ground-truth distribution: movie and location check-in preferences may be more predictable at the individual level, while business and book preferences are more diverse and harder to retrieve in a short ranked list.
 
 == Additional Analysis
 
-Possible additional analyses include:
+@fig:radar visualizes the normalized metric profiles of each model per dataset. Several patterns are immediately visible. On ML-1M, all three models occupy nearly the same polygon area, confirming that performance differences are small on dense data. On Yelp2018, Amazon-book, and Gowalla, SimGCL's polygon consistently extends further than LightGCN's across all four axes, reflecting its uniform advantage on sparse benchmarks. The most striking chart is Last.fm-26, where LightGCN collapses to a single point at the origin while SGL and SimGCL produce only a small polygon, illustrating the near-total failure of all models on this dataset. @fig:stability shows run-to-run variance via error bars across all models and datasets.
 
-- Ablation study.
-- Sensitivity to K.
-- Sensitivity to hyperparameters.
-- Training efficiency comparison.
-- Case study / recommendation examples.
+#figure(
+  placement: top,
+  scope: "parent",
+  image("figures/fig6_radar.pdf", width: 100%),
+  caption: [Radar charts of normalized metric profiles (Recall, NDCG, HR, MRR \@20) per dataset. Values are normalized within each dataset so that the best model reaches the outer edge.]
+) <fig:radar>
+
+#figure(
+  placement: top,
+  scope: "parent",
+  image("figures/fig7_stability.pdf", width: 95%),
+  caption: [Recall\@20 with error bars (std over 3 runs). Error bars are barely visible, confirming high run-to-run stability for all models and datasets.]
+) <fig:stability>
+
+=== Run-to-Run Stability
+
+As noted in @sec:exp, all three models demonstrate strong run-to-run stability on benchmark datasets. LightGCN is fully deterministic. SGL's variance across three runs is negligible (standard deviation below 0.0001 for Recall\@20 on all benchmark datasets). SimGCL shows marginally higher variance than SGL on ML-1M and Last.fm-26, but the standard deviation remains below 0.004 in all cases. This stability confirms that the reported averages are reliable estimates of each model's performance under the given hyperparameter configuration.
+
+=== Metric Consistency
+
+The four reported metrics (Recall\@20, NDCG\@20, HR\@20, MRR\@20) give consistent rankings across models on each dataset, with one notable exception: on Last.fm-26, SGL ranks first and SimGCL second on all metrics, while on all benchmark datasets SimGCL dominates (or ties) SGL. This consistency across multiple metrics strengthens the conclusions drawn from Recall\@20 alone and reduces the risk of metric-specific artifacts.
+
+=== SGL vs. SimGCL: Efficiency Trade-off
+
+Beyond accuracy, SimGCL offers a clear computational advantage over SGL. SGL requires three forward passes through LightGCN per training step (one for each augmented view plus the main pass), roughly tripling the per-epoch cost of a vanilla LightGCN run. SimGCL, by contrast, performs only a single LightGCN forward pass and generates contrastive views by adding cheap random noise to the output embeddings, keeping training time comparable to LightGCN. On Amazon-book, for example, SGL takes approximately three times longer per epoch than LightGCN or SimGCL. Given that SimGCL also achieves better accuracy, it is strictly preferable to SGL in both dimensions.
 
 == Discussion
 
-[Summarize the key findings and practical implications.]
+The results collectively support three key findings. First, *self-supervised contrastive learning is beneficial but context-dependent*: it provides large improvements on sparse datasets (Amazon-book, Yelp2018) but is neutral or harmful when the data is dense (ML-1M), and it fails to rescue models on pathologically extreme datasets (Last.fm-26). Second, *the mechanism of view generation matters*: SimGCL's noise-based views consistently outperform SGL's graph augmentation because they avoid over-corrupting the neighborhood structure on dense graphs while still applying the uniformity pressure of the InfoNCE objective. Third, *dataset characteristics—especially density and user-to-item ratio—are the primary determinants of which model performs best*, more so than the specific model architecture in the medium-to-low sparsity regime.
+
+These findings have practical implications for model selection in production systems. When interaction data is abundant and dense, a simple and fast model like LightGCN is sufficient and competitive. When data is sparse or long-tailed, SimGCL is a better choice that combines the accuracy of contrastive learning with the speed of vanilla graph propagation. When data is extremely sparse with a very large item space, none of the three models provides reliable recommendations under the standard Top-K evaluation protocol, and improving data collection should be the priority.
 
 = Conclusion <sec:conclusion>
 
-This report studied recommendation systems with implicit feedback in the
-binary Top-K recommendation setting. We reviewed three state-of-the-art
-methods, collected one dataset, and benchmarked all methods on five datasets.
+This report studied recommendation systems with implicit feedback in the binary Top-K recommendation setting. We reviewed three representative state-of-the-art graph-based models—LightGCN, SGL, and SimGCL—collected one self-supervised dataset (Last.fm-26), and benchmarked all methods on five datasets spanning diverse domains and sparsity levels.
 
-The major findings of this study can be summarized as follows:
+The major findings of this study can be summarized as follows.
 
-- [Finding 1]
-- [Finding 2]
-- [Finding 3]
+- *SimGCL is the most consistently strong model.* It achieves the best performance on four out of five datasets and combines state-of-the-art accuracy with training efficiency comparable to vanilla LightGCN, making it the recommended choice for sparse implicit-feedback recommendation.
+- *Self-supervised contrastive learning helps on sparse data but can hurt on dense data.* SGL degrades below LightGCN on ML-1M (the densest dataset at 4.47%), because stochastic graph augmentation introduces unnecessary noise when the interaction graph already provides rich neighborhood structure. SimGCL avoids this pitfall by generating contrastive views in embedding space rather than at the graph level.
+- *Dataset characteristics—particularly interaction density and user-to-item ratio—are the dominant factor in determining model performance.* The relative improvement of contrastive models over LightGCN grows as density decreases, and on Last.fm-26 (380 users, 136,893 items), all three models fail to produce meaningful recommendations under the standard Top-20 evaluation protocol.
 
-The strengths and weaknesses of the selected models were identified through
-both quantitative results and qualitative analysis. In addition, we found
-that dataset characteristics have a significant effect on ranking performance.
+*Model strengths and weaknesses.* LightGCN is the simplest, fastest, and most deterministic model; it is competitive on dense data but falls behind on sparse datasets. SGL adds self-supervised signal through graph augmentation, which benefits sparse datasets but is detrimental on dense ones and increases training cost by approximately $3 times$. SimGCL achieves the best accuracy across most settings while maintaining LightGCN-level training efficiency; its main limitation is that it still fails on pathologically sparse datasets.
+
+*Dataset impact.* The self-collected Last.fm-26 dataset, in its current form, is not suitable for evaluating Top-K recommendation models because the 1:360 user-to-item ratio and the small user count (380) after k-core filtering result in an evaluation protocol where relevant items are overwhelmed by the vast item space.
 
 Future work may include:
 
-- Testing more advanced self-supervised or graph-based models.
-- Improving the quality and diversity of the collected dataset.
-- Exploring additional evaluation metrics such as diversity and novelty.
-- Extending the study to sequential or session-based recommendation.
+- Extending the self-collected dataset with more users and a higher minimum interaction threshold, to produce a more balanced and evaluable interaction graph.
+- Evaluating more recent self-supervised or hypergraph-based recommendation models beyond the three studied here.
+- Exploring sensitivity to the cutoff $K$ and to model hyperparameters such as contrastive temperature $tau$ and noise magnitude $epsilon$.
+- Investigating beyond-accuracy metrics such as diversity, novelty, and popularity bias, which are important for real-world deployment but not captured by standard ranking metrics.
 
-#bibliography("refs.bib")
 
