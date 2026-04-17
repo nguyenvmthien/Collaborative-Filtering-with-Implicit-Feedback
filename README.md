@@ -107,8 +107,6 @@ Run the notebooks in `phase3/code/` in order:
 3. `Phase3_Part3_SimGCL.ipynb`
 4. `analyze_results.ipynb` — aggregate and compare results
 
-Alternatively, use `BigData_RecSys_Colab.ipynb` to run on Google Colab.
-
 Results (NDCG@20, Recall@20, Precision@20, HR@20, MRR@20) are saved to `phase3/results/results.csv`.
 
 ## Results
