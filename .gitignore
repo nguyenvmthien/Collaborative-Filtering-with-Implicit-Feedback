@@ -3,3 +3,6 @@
 /.tmp_sgl_torch/
 phase3/results/has processed/
 phase3/report/position.md
+script_*.md
+script_*.pdf
+*.zip

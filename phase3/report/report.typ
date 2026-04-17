@@ -77,13 +77,12 @@ SGL #cite(<wu2021self>) is one of the representative methods in this direction. 
 SimGCL #cite(<yu2022graph>) further revisits this line of work and questions whether graph augmentation is truly the essential reason behind the gains of contrastive learning. Its analysis shows that the contrastive objective itself plays the dominant role, while graph augmentation may contribute much less than previously assumed. Based on this insight, SimGCL discards complex graph perturbation and instead generates contrastive views by adding controlled random noise in the embedding space. The paper reports that this simpler design not only preserves the benefits of contrastive learning, but also improves efficiency and often achieves better recommendation performance than augmentation-based counterparts. 
 
 == Positioning of the Selected Models
-The three selected models are chosen because they best match the scope and purpose of this report. Since our study focuses on implicit-feedback collaborative filtering under the binary Top-K setting, _graph-based models are a natural choice because they directly exploit the user--item interaction graph, which is the main source of learning signal in this problem_. More specifically, the three models also represent a clear methodological progression: LightGCN is selected as _a strong and widely adopted graph collaborative filtering baseline_, SGL is chosen because it extends_ this backbone with self-supervised contrastive learning to better handle sparsity and noisy interactions_, and SimGCL is included as a more recent refinement that _simplifies graph augmentation while maintaining strong accuracy and better efficiency_. In addition, all three models are _well established in the literature_, have _public implementations_, and are _feasible to reproduce under our computational budget_, making them suitable for a fair and meaningful comparison.
 
-
-
+The three selected models are chosen because they best match the scope and purpose of this report. Since our study focuses on implicit-feedback collaborative filtering under the binary Top-K setting, _graph-based models are a natural choice because they directly exploit the user--item interaction graph, which is the main source of learning signal in this problem_. More specifically, the three models also represent a clear methodological progression: LightGCN is selected as _a strong and widely adopted graph collaborative filtering baseline_, SGL is chosen because it _extends this backbone with self-supervised contrastive learning to better handle sparsity and noisy interactions_, and SimGCL is included as a more recent refinement that _simplifies graph augmentation while maintaining strong accuracy and better efficiency_. In addition, all three models are _well established in the literature_, have _public implementations_, and are _feasible to reproduce under our computational budget_, making them suitable for a fair and meaningful comparison.
 
 = Selected Models 
-== *LightGCN* 
+== *LightGCN*
+
 === Core Idea
 
 LightGCN is built on the intuition that the two most common components of
@@ -93,7 +92,7 @@ applied to collaborative filtering with implicit feedback. Instead, the
 only meaningful operation is to let each user and item _aggregate_ the
 embeddings of its neighbors on the user--item interaction graph. A user
 who interacted with many popular items will absorb those items' signals;
-an item interacted with by many active users will absorbs those users'
+an item interacted with by many active users will absorb those users'
 signals. Stacking multiple such propagation layers captures higher-order
 connectivity (friends-of-friends effects), and the final representation is
 a weighted combination of all layer outputs.
@@ -236,6 +235,7 @@ Methodologically, SGL is essential in our model set because it represents the tr
 // ---------------------------------------------------------------------------
 
 == *Simple Graph Contrastive Learning* (SimGCL)
+
 === Core Idea
 
 SimGCL revisits SGL and asks: _is graph augmentation actually the source
@@ -458,9 +458,9 @@ LightGCN produces bit-for-bit identical results across all three runs on every d
     ],
 
     // ── ML-1M
-    [ML-1M],      [LightGCN], [*0.1434*], [*0.0580*], [*0.1434*], [*0.0348*],
+    [ML-1M],      [LightGCN], [0.1434],   [*0.0580*], [0.1434],   [*0.0348*],
     [ML-1M],      [SGL],      [0.1321],   [0.0525],   [0.1321],   [0.0309],
-    [ML-1M],      [SimGCL],   [0.1432],   [0.0566],   [0.1432],   [0.0322],
+    [ML-1M],      [SimGCL],   [*0.1466*], [0.0566],   [*0.1466*], [0.0322],
 
     // ── Yelp2018
     [Yelp2018],   [LightGCN], [0.0604],   [0.0491],   [0.3762],   [0.1022],
@@ -497,15 +497,15 @@ LightGCN produces bit-for-bit identical results across all three runs on every d
 
 The results in @tab:main-results reveal several clear patterns in how the three models perform across the five datasets.
 
-*SimGCL is the overall strongest model.* On four out of five datasets—Yelp2018, Amazon-book, Gowalla, and Last.fm-26—SimGCL achieves the best scores on all four metrics. Its average Recall\@20 gain over LightGCN across the four benchmark datasets is approximately +5.6% (Yelp2018: +20.5%, Amazon-book: +43.9%, Gowalla: +5.7%, ML-1M: −0.1%). The consistency of these improvements across diverse domains confirms that SimGCL's embedding-space noise provides a reliable regularization benefit over both purely supervised graph propagation and graph-augmentation-based contrastive learning.
+*SimGCL is the overall strongest model.* On all four benchmark datasets—Yelp2018, Amazon-book, Gowalla, and ML-1M—SimGCL achieves the best Recall\@20 scores. Its average Recall\@20 gain over LightGCN across the four benchmark datasets is approximately +18.0% (Yelp2018: +20.5%, Amazon-book: +43.7%, Gowalla: +5.6%, ML-1M: +2.3%). The consistency of these improvements across diverse domains confirms that SimGCL's embedding-space noise provides a reliable regularization benefit over both purely supervised graph propagation and graph-augmentation-based contrastive learning.
 
 *SGL underperforms on dense data.* The most striking anomaly in @tab:main-results is that SGL scores *lower* than LightGCN on ML-1M on all four metrics (Recall\@20: 0.1321 vs. 0.1434, a drop of −7.9%). ML-1M is the densest dataset by a wide margin (4.47% density), and this result suggests that stochastic graph augmentation — which randomly removes edges or nodes — can be harmful when the interaction graph is already dense. Dropping edges from a rich neighborhood structure introduces unnecessary noise rather than useful regularization, degrading the learned representations. This finding is consistent with the theoretical perspective in SimGCL, which argues that the key benefit of contrastive learning comes from the uniformity pressure of the InfoNCE objective rather than from structural graph perturbation itself.
 
-*SimGCL and LightGCN are very close on ML-1M.* On the dense ML-1M dataset, SimGCL (0.1432) nearly matches LightGCN (0.1434) and both are clearly better than SGL (0.1321). This shows that additive embedding noise in SimGCL is much less disruptive than graph-level dropout on dense data, but the contrastive objective provides only marginal benefit when sufficient interaction signal is already available for learning strong embeddings.
+*SimGCL outperforms LightGCN on ML-1M.* On the dense ML-1M dataset, SimGCL (0.1466) outperforms LightGCN (0.1434) and both are clearly better than SGL (0.1321). This shows that additive embedding noise in SimGCL does not disrupt performance on dense data, and the contrastive objective still provides a modest but consistent gain even when interaction signal is already abundant.
 
-*Gowalla benefits moderately from contrastive learning.* On Gowalla, SimGCL achieves the best performance (+5.7% Recall over LightGCN), while SGL provides a smaller but consistent improvement (+2.9%). Notably, SGL achieves a slightly lower HR\@20 than LightGCN on Gowalla (0.5754 vs. 0.5765), suggesting that edge dropout does not consistently help with hit-rate coverage even on this sparse graph.
+*Gowalla benefits moderately from contrastive learning.* On Gowalla, SimGCL achieves the best performance (+5.6% Recall over LightGCN), while SGL provides a smaller but consistent improvement (+2.9%). Notably, SGL achieves a slightly lower HR\@20 than LightGCN on Gowalla (0.5754 vs. 0.5765), suggesting that edge dropout does not consistently help with hit-rate coverage even on this sparse graph.
 
-*Last.fm-26 is a unique failure case.* LightGCN scores exactly zero on all metrics for Last.fm-26. This is because the post-filtering dataset retains only 380 users but 136,893 items — an extreme asymmetry. With so few users and such a vast item space, the neighborhood propagation in LightGCN cannot accumulate enough collaborative signal to rank relevant items within the top 20 out of 136,893 candidates. SGL and SimGCL produce small but non-zero scores (Recall\@20: 0.0053 and 0.0044 respectively), demonstrating that contrastive regularization can slightly alleviate the representation learning difficulty even under extreme sparsity. However, the absolute performance remains negligibly low for all models, indicating that Last.fm-26 in its current form is too sparse and unbalanced for meaningful ranking evaluation.
+*Last.fm-26 is a unique failure case.* LightGCN scores exactly zero on all metrics for Last.fm-26. The root cause is structural: after k-core filtering, the dataset retains only 380 users against 136,893 items — a 1:360 user-to-item ratio. With so few users, most items receive at most one or two interactions, leaving the bipartite graph almost entirely disconnected. Multi-hop neighborhood propagation in LightGCN therefore cannot accumulate meaningful collaborative signal: embeddings of rarely-interacted items converge toward nearly identical vectors, making it impossible for any relevant item to score high enough to appear in the top 20 out of 136,893 candidates. SGL and SimGCL produce small but non-zero scores (Recall\@20: 0.0053 and 0.0044 respectively). The InfoNCE contrastive objective exerts a uniformity pressure that forces item embeddings apart even when interaction signal is weak, giving a small but non-zero chance for a relevant item to rank in the top 20. However, the absolute performance remains negligibly low for all models. This failure mode indicates that the dataset requires a more balanced user-to-item ratio and a higher minimum interaction threshold before it can support meaningful Top-K evaluation.
 
 @fig:improvement-heatmap shows the relative improvement of each model over LightGCN in Recall\@20, making the dataset-dependent pattern immediately visible.
 
@@ -520,11 +520,11 @@ The results in @tab:main-results reveal several clear patterns in how the three 
 
 The experimental results point to two dataset properties that strongly influence model performance: *interaction density* and *the user-to-item ratio*.
 
-*Interaction density and the value of contrastive learning.* Across the four benchmark datasets, the relative gain of SimGCL over LightGCN in Recall\@20 is inversely correlated with dataset density. On Amazon-book (density 0.062%), SimGCL improves by +43.9%. On Yelp2018 (0.130%), the gain is +20.5%. On Gowalla (0.084%), the gain is +5.7%. On ML-1M (4.47%), the gain is essentially zero (−0.1%). This pattern strongly supports the view that self-supervised contrastive learning is most valuable when the interaction graph is sparse, because in that regime the supervised BPR loss alone provides insufficient signal to learn discriminative user and item representations. Contrastive learning compensates by extracting auxiliary learning signal from the graph structure itself, improving representation uniformity and thus retrieval coverage.
+*Interaction density and the value of contrastive learning.* Across the four benchmark datasets, the relative gain of SimGCL over LightGCN in Recall\@20 is inversely correlated with dataset density (see gains reported in @tab:main-results). This pattern supports the view that contrastive learning is most valuable when the interaction graph is sparse: in that regime, BPR loss alone provides insufficient signal to learn discriminative representations, and the InfoNCE objective compensates by improving embedding uniformity across the full item space. On denser data, BPR already provides adequate signal so the marginal benefit of contrastive regularization is smaller, though SimGCL still gains modestly on ML-1M (+2.3%).
 
-*Scale and long-tail distributions.* Amazon-book is the most challenging benchmark: it has the largest number of users (52,643) and items (91,599) among the four benchmarks, and exhibits a severe long-tail interaction distribution. Under these conditions, LightGCN's Recall\@20 of 0.0333 is notably lower than on other benchmarks, reflecting the difficulty of propagating meaningful signals through a vast, highly sparse graph. SGL and SimGCL both achieve substantially higher performance (+42.9% and +43.9%), confirming that contrastive learning is particularly effective for mitigating long-tail sparsity.
+*Scale and long-tail distributions.* Amazon-book is the most challenging benchmark: it has the largest number of users (52,643) and items (91,599) among the four benchmarks, and exhibits a severe long-tail interaction distribution. Under these conditions, LightGCN's Recall\@20 of 0.0333 is notably lower than on other benchmarks, reflecting the difficulty of propagating meaningful signals through a vast, highly sparse graph. SGL and SimGCL both achieve substantially higher performance (+42.7% and +43.7%), confirming that contrastive learning is particularly effective for mitigating long-tail sparsity.
 
-*User-to-item ratio and the Last.fm-26 collapse.* Last.fm-26 exposes a boundary condition that goes beyond ordinary sparsity. With 380 users and 136,893 items, the ratio of users to items is approximately 1:360, compared to roughly 1:1.7 for ML-1M and 1:3.1 for Gowalla. This extreme imbalance means that even after k-core filtering, most items receive at most a handful of interactions. The interaction graph is too disconnected for multi-hop neighborhood propagation to produce informative embeddings, and the Top-20 candidate list covers only 0.015% of the item space, making it statistically very unlikely for relevant items to appear in the ranked output. These results suggest that collecting a self-supervised dataset with a more balanced user-to-item ratio and a higher minimum interaction count per user would be necessary for meaningful model evaluation.
+*User-to-item ratio and the Last.fm-26 collapse.* Beyond ordinary sparsity, Last.fm-26 exposes a more fundamental boundary condition: the Top-20 candidate list covers only 0.015% of the 136,893-item space, compared to 0.54% for ML-1M and 0.049% for Gowalla. Even a model that ranks perfectly would face near-zero recall under this evaluation protocol. This highlights that the user-to-item ratio is a critical dataset property that must be considered when designing evaluation benchmarks for Top-K recommendation.
 
 @fig:density-gain plots SimGCL's Recall\@20 gain over LightGCN against dataset density, confirming the inverse relationship. @fig:lastfm-detail zooms into Last.fm-26 where absolute scores are near zero.
 
@@ -572,9 +572,9 @@ Beyond accuracy, SimGCL offers a clear computational advantage over SGL. SGL req
 
 == Discussion
 
-The results collectively support three key findings. First, *self-supervised contrastive learning is beneficial but context-dependent*: it provides large improvements on sparse datasets (Amazon-book, Yelp2018) but is neutral or harmful when the data is dense (ML-1M), and it fails to rescue models on pathologically extreme datasets (Last.fm-26). Second, *the mechanism of view generation matters*: SimGCL's noise-based views consistently outperform SGL's graph augmentation because they avoid over-corrupting the neighborhood structure on dense graphs while still applying the uniformity pressure of the InfoNCE objective. Third, *dataset characteristics—especially density and user-to-item ratio—are the primary determinants of which model performs best*, more so than the specific model architecture in the medium-to-low sparsity regime.
+The results collectively support three key findings. First, *self-supervised contrastive learning is consistently beneficial for SimGCL across all density regimes*, ranging from large gains on sparse datasets (Amazon-book: +43.7%, Yelp2018: +20.5%) to a modest gain on dense data (ML-1M: +2.3%), while SGL's graph augmentation is harmful on dense data (ML-1M: −7.9%). Second, *the mechanism of view generation matters*: SimGCL's noise-based views consistently outperform SGL's graph augmentation because they avoid over-corrupting the neighborhood structure on dense graphs while still applying the uniformity pressure of the InfoNCE objective. Third, *dataset characteristics—especially density and user-to-item ratio—are the primary determinants of relative model gains*, though SimGCL remains the best choice across all regimes.
 
-These findings have practical implications for model selection in production systems. When interaction data is abundant and dense, a simple and fast model like LightGCN is sufficient and competitive. When data is sparse or long-tailed, SimGCL is a better choice that combines the accuracy of contrastive learning with the speed of vanilla graph propagation. When data is extremely sparse with a very large item space, none of the three models provides reliable recommendations under the standard Top-K evaluation protocol, and improving data collection should be the priority.
+These findings have practical implications for model selection in production systems. Across all interaction densities, SimGCL is the recommended choice as it combines accuracy with LightGCN-level training efficiency. SGL should be avoided on dense data due to its harmful graph augmentation. When data is extremely sparse with a very large item space, none of the three models provides reliable recommendations under the standard Top-K evaluation protocol, and improving data collection should be the priority.
 
 = Conclusion <sec:conclusion>
 
@@ -582,19 +582,14 @@ This report studied recommendation systems with implicit feedback in the binary 
 
 The major findings of this study can be summarized as follows.
 
-- *SimGCL is the most consistently strong model.* It achieves the best performance on four out of five datasets and combines state-of-the-art accuracy with training efficiency comparable to vanilla LightGCN, making it the recommended choice for sparse implicit-feedback recommendation.
+- *SimGCL is the most consistently strong model.* It achieves the best Recall\@20 on all four benchmark datasets and combines state-of-the-art accuracy with training efficiency comparable to vanilla LightGCN, making it the recommended choice for implicit-feedback recommendation across all density regimes.
 - *Self-supervised contrastive learning helps on sparse data but can hurt on dense data.* SGL degrades below LightGCN on ML-1M (the densest dataset at 4.47%), because stochastic graph augmentation introduces unnecessary noise when the interaction graph already provides rich neighborhood structure. SimGCL avoids this pitfall by generating contrastive views in embedding space rather than at the graph level.
 - *Dataset characteristics—particularly interaction density and user-to-item ratio—are the dominant factor in determining model performance.* The relative improvement of contrastive models over LightGCN grows as density decreases, and on Last.fm-26 (380 users, 136,893 items), all three models fail to produce meaningful recommendations under the standard Top-20 evaluation protocol.
 
 *Model strengths and weaknesses.* LightGCN is the simplest, fastest, and most deterministic model; it is competitive on dense data but falls behind on sparse datasets. SGL adds self-supervised signal through graph augmentation, which benefits sparse datasets but is detrimental on dense ones and increases training cost by approximately $3 times$. SimGCL achieves the best accuracy across most settings while maintaining LightGCN-level training efficiency; its main limitation is that it still fails on pathologically sparse datasets.
 
-*Dataset impact.* The self-collected Last.fm-26 dataset, in its current form, is not suitable for evaluating Top-K recommendation models because the 1:360 user-to-item ratio and the small user count (380) after k-core filtering result in an evaluation protocol where relevant items are overwhelmed by the vast item space.
+// *Dataset impact.* The self-collected Last.fm-26 dataset, in its current form, is not suitable for evaluating Top-K recommendation models because the 1:360 user-to-item ratio and the small user count (380) after k-core filtering result in an evaluation protocol where relevant items are overwhelmed by the vast item space.
 
-Future work may include:
-
-- Extending the self-collected dataset with more users and a higher minimum interaction threshold, to produce a more balanced and evaluable interaction graph.
-- Evaluating more recent self-supervised or hypergraph-based recommendation models beyond the three studied here.
-- Exploring sensitivity to the cutoff $K$ and to model hyperparameters such as contrastive temperature $tau$ and noise magnitude $epsilon$.
-- Investigating beyond-accuracy metrics such as diversity, novelty, and popularity bias, which are important for real-world deployment but not captured by standard ranking metrics.
+*Future work.* First, the fixed noise magnitude in SimGCL could be replaced by an adaptive scheme that applies stronger perturbation to nodes with few interactions and lighter perturbation to well-connected nodes, better matching the regularization strength to local graph density. Second, SGL's random graph augmentation could be improved by learning to select which edges to drop based on interaction weight or structural importance, making the augmentation more informative and less likely to corrupt rich neighborhood structure on dense graphs. Third, integrating side information—such as item content features or user profile attributes—into the graph encoder would provide an alternative learning signal for cold-start nodes that lack sufficient interaction history, addressing the failure mode observed on Last.fm-26.
 
 
